@@ -1,0 +1,7 @@
+{
+	"name": "synapse-ws-custstgacct--jaffa-dev-developmentdls",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/49fcbaac-7114-425f-92ef-d832587418f5/resourceGroups/development/providers/Microsoft.Storage/storageAccounts/developmentdls",
+		"groupId": "dfs"
+	}
+}

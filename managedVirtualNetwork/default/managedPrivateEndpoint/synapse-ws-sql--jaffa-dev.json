@@ -1,0 +1,10 @@
+{
+	"name": "synapse-ws-sql--jaffa-dev",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/49fcbaac-7114-425f-92ef-d832587418f5/resourceGroups/development/providers/Microsoft.Synapse/workspaces/jaffa-dev",
+		"groupId": "sql",
+		"fqdns": [
+			"jaffa-dev.c67511ed-8358-40f6-a518-c4bb9baa9f1f.sql.azuresynapse.net"
+		]
+	}
+}

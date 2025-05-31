@@ -1,0 +1,10 @@
+{
+	"name": "synapse-ws-sqlOnDemand--jaffa-dev",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/49fcbaac-7114-425f-92ef-d832587418f5/resourceGroups/development/providers/Microsoft.Synapse/workspaces/jaffa-dev",
+		"groupId": "sqlOnDemand",
+		"fqdns": [
+			"jaffa-dev-ondemand.c67511ed-8358-40f6-a518-c4bb9baa9f1f.sql.azuresynapse.net"
+		]
+	}
+}

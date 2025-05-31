@@ -1,0 +1,18 @@
+{
+	"name": "Northern Re",
+	"properties": {
+		"description": "SQL Script to attach raw view of northern re's vellum data.",
+		"content": {
+			"query": "CREATE EXTERNAL DATA SOURCE [developmentdls] WITH\n(\n\tLOCATION = 'https://developmentdls.blob.core.windows.net/development-data-lake'\n);\nGO\n\nCREATE SCHEMA [raw];\nGO\n\nCREATE VIEW [raw].[financial_model_inputs] AS\nSELECT [nre_feed] = A.filepath(1), --[nre_feed]\n\t[treaty_year] = CONVERT(tinyint, A.filepath(2)), --[treaty_year]\n\t[v_created] = [v_created],\n\t[query_date] = CONVERT(datetime2, A.filepath(3)), --[query_date]\n\t[bordereaux_month],\n\t[tf_assumed_gross_written_premium],\n\t[tf_assumed_earned_premium],\n\t[tf_assumed_paid_losses],\n\t[tf_assumed_expected_losses],\n\t[tf_assumed_collected_premium],\n\t[tf_assumed_ss],\n\t[tf_assumed_paid_alae],\n\t[tf_assumed_paid_ulae]\nFROM\n\tOPENROWSET(\n        BULK 'bronze/northernre/treefrog_snapshots/*/*/*.parquet',\n        DATA_SOURCE = 'developmentdls',\n        FORMAT = 'PARQUET'\n    )\n\tWITH (\n\t\tnre_feed NVARCHAR(100),\n\t\ttreaty_year TINYINT,\n\t\tv_created DATE,\n\t\tquery_date DATETIME2,\n\t\tbordereaux_month DATE,\n\t\ttf_assumed_gross_written_premium MONEY,\n\t\ttf_assumed_earned_premium MONEY,\n\t\ttf_assumed_paid_losses MONEY,\n\t\ttf_assumed_expected_losses MONEY,\n\t\ttf_assumed_collected_premium MONEY,\n\t\ttf_assumed_ss MONEY,\n\t\ttf_assumed_paid_alae MONEY,\n\t\ttf_assumed_paid_ulae MONEY\n\t) A\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "Insurance",
+				"poolName": "Built-in"
+			},
+			"resultLimit": -1
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1,0 +1,194 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "jaffa-dev"
+		},
+		"jaffa-dev-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'jaffa-dev-WorkspaceDefaultSqlServer'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:jaffa-dev.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"jaffa-dev-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://developmentdls.dfs.core.windows.net"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/jaffa-dev-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('jaffa-dev-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/jaffa-dev-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('jaffa-dev-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				},
+				"managedVirtualNetwork": {
+					"type": "ManagedVirtualNetworkReference",
+					"referenceName": "default"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/default')]",
+			"type": "Microsoft.Synapse/workspaces/managedVirtualNetworks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Northern Re')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"description": "SQL Script to attach raw view of northern re's vellum data.",
+				"content": {
+					"query": "CREATE EXTERNAL DATA SOURCE [developmentdls] WITH\n(\n\tLOCATION = 'https://developmentdls.blob.core.windows.net/development-data-lake'\n);\nGO\n\nCREATE SCHEMA [raw];\nGO\n\nCREATE VIEW [raw].[financial_model_inputs] AS\nSELECT [nre_feed] = A.filepath(1), --[nre_feed]\n\t[treaty_year] = CONVERT(tinyint, A.filepath(2)), --[treaty_year]\n\t[v_created] = [v_created],\n\t[query_date] = CONVERT(datetime2, A.filepath(3)), --[query_date]\n\t[bordereaux_month],\n\t[tf_assumed_gross_written_premium],\n\t[tf_assumed_earned_premium],\n\t[tf_assumed_paid_losses],\n\t[tf_assumed_expected_losses],\n\t[tf_assumed_collected_premium],\n\t[tf_assumed_ss],\n\t[tf_assumed_paid_alae],\n\t[tf_assumed_paid_ulae]\nFROM\n\tOPENROWSET(\n        BULK 'bronze/northernre/treefrog_snapshots/*/*/*.parquet',\n        DATA_SOURCE = 'developmentdls',\n        FORMAT = 'PARQUET'\n    )\n\tWITH (\n\t\tnre_feed NVARCHAR(100),\n\t\ttreaty_year TINYINT,\n\t\tv_created DATE,\n\t\tquery_date DATETIME2,\n\t\tbordereaux_month DATE,\n\t\ttf_assumed_gross_written_premium MONEY,\n\t\ttf_assumed_earned_premium MONEY,\n\t\ttf_assumed_paid_losses MONEY,\n\t\ttf_assumed_expected_losses MONEY,\n\t\ttf_assumed_collected_premium MONEY,\n\t\ttf_assumed_ss MONEY,\n\t\ttf_assumed_paid_alae MONEY,\n\t\ttf_assumed_paid_ulae MONEY\n\t) A\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "Insurance",
+						"poolName": "Built-in"
+					},
+					"resultLimit": -1
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Permissions')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"description": "This script is used to grant the SQL permissions required to use the server / database.",
+				"content": {
+					"query": "USE [master];\nGO\n\nCREATE LOGIN [DATA-READER-INSURANCE] FROM EXTERNAL PROVIDER;\nGO\n\nUSE [Insurance];\nGO\n\nCREATE USER [DATA-READER-INSURANCE] FROM LOGIN [DATA-READER-INSURANCE] ;\nGO\n\nALTER ROLE db_datareader ADD MEMBER [DATA-READER-INSURANCE];\nGO\n\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "Insurance",
+						"poolName": "Built-in"
+					},
+					"resultLimit": -1
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/default/synapse-ws-custstgacct--jaffa-dev-developmentdls')]",
+			"type": "Microsoft.Synapse/workspaces/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"privateLinkResourceId": "/subscriptions/49fcbaac-7114-425f-92ef-d832587418f5/resourceGroups/development/providers/Microsoft.Storage/storageAccounts/developmentdls",
+				"groupId": "dfs"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/default/synapse-ws-sql--jaffa-dev')]",
+			"type": "Microsoft.Synapse/workspaces/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"privateLinkResourceId": "/subscriptions/49fcbaac-7114-425f-92ef-d832587418f5/resourceGroups/development/providers/Microsoft.Synapse/workspaces/jaffa-dev",
+				"groupId": "sql",
+				"fqdns": [
+					"jaffa-dev.c67511ed-8358-40f6-a518-c4bb9baa9f1f.sql.azuresynapse.net"
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/managedVirtualNetworks/default')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/default/synapse-ws-sqlOnDemand--jaffa-dev')]",
+			"type": "Microsoft.Synapse/workspaces/managedVirtualNetworks/managedPrivateEndpoints",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"privateLinkResourceId": "/subscriptions/49fcbaac-7114-425f-92ef-d832587418f5/resourceGroups/development/providers/Microsoft.Synapse/workspaces/jaffa-dev",
+				"groupId": "sqlOnDemand",
+				"fqdns": [
+					"jaffa-dev-ondemand.c67511ed-8358-40f6-a518-c4bb9baa9f1f.sql.azuresynapse.net"
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/managedVirtualNetworks/default')]"
+			]
+		}
+	]
+}
